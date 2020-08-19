@@ -2,14 +2,14 @@
 
 from os.path import exists
 from setuptools import setup
-import multipledispatch
 
 setup(name='multipledispatch',
-      version=multipledispatch.__version__,
+      version='0.6.0',
       description='Multiple dispatch',
       url='http://github.com/mrocklin/multipledispatch/',
       author='Matthew Rocklin',
       author_email='mrocklin@gmail.com',
+      install_requires=['six'],
       license='BSD',
       keywords='dispatch',
       packages=['multipledispatch'],

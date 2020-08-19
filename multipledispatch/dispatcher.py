@@ -5,11 +5,12 @@ import copy
 
 from .conflict import ordering, ambiguities, super_signature, AmbiguityWarning
 from .utils import expand_tuples
+from .variadic import Variadic, isvariadic
+import itertools as itl
 
 import itertools as itl
 import pytypes
 import typing
-
 
 class MDNotImplementedError(NotImplementedError):
     """ A NotImplementedError for multiple dispatch """
@@ -50,6 +51,54 @@ def restart_ordering(on_ambiguity=ambiguity_warn):
         ' dispatcher.',
         DeprecationWarning,
     )
+
+
+def variadic_signature_matches_iter(types, full_signature):
+    """Check if a set of input types matches a variadic signature.
+
+    Notes
+    -----
+    The algorithm is as follows:
+
+    Initialize the current signature to the first in the sequence
+
+    For each type in `types`:
+        If the current signature is variadic
+            If the type matches the signature
+                yield True
+            Else
+                Try to get the next signature
+                If no signatures are left we can't possibly have a match
+                    so yield False
+        Else
+            yield True if the type matches the current signature
+            Get the next signature
+    """
+    sigiter = iter(full_signature)
+    sig = next(sigiter)
+    for typ in types:
+        matches = safe_subtype(typ, sig)
+        yield matches
+        if not isvariadic(sig):
+            # we're not matching a variadic argument, so move to the next
+            # element in the signature
+            sig = next(sigiter)
+    else:
+        try:
+            sig = next(sigiter)
+        except StopIteration:
+            assert isvariadic(sig)
+            yield True
+        else:
+            # We have signature items left over, so all of our arguments
+            # haven't matched
+            yield False
+
+
+def variadic_signature_matches(types, full_signature):
+    # No arguments always matches a variadic signature
+    assert full_signature
+    return all(variadic_signature_matches_iter(types, full_signature))
 
 
 class Dispatcher(object):
@@ -109,10 +158,10 @@ class Dispatcher(object):
         >>> f([1, 2, 3])
         [3, 2, 1]
         """
-        def _(func):
+        def _df(func):
             self.add(types, func, **kwargs)
             return func
-        return _
+        return _df
 
     @classmethod
     def get_func_params(cls, func):
@@ -180,22 +229,38 @@ class Dispatcher(object):
         for signature in signatures:
             signature = tuple(process_union(tp) for tp in signature)
 
-            # make a copy of the function (if needed) and apply the function annotations
+        new_signature = []
 
-            # TODO: MAKE THIS type or typevar
-            for typ in signature:
-                try:
-                    typing.Union[typ]
-                except TypeError:
-                    str_sig = ', '.join(c.__name__ if isinstance(c, type)
-                                        else str(c) for c in signature)
-                    raise TypeError("Tried to dispatch on non-type: %s\n"
-                                    "In signature: <%s>\n"
-                                    "In function: %s" %
-                                    (typ, str_sig, self.name))
+        for index, typ in enumerate(signature, start=1):
+            try:
+                typing.Union[typ]
+            except TypeError:
+                str_sig = ', '.join(c.__name__ if isinstance(c, type)
+                                    else str(c) for c in signature)
+                raise TypeError("Tried to dispatch on non-type: %s\n"
+                                "In signature: <%s>\n"
+                                "In function: %s" %
+                                (typ, str_sig, self.name))
 
-            self.funcs[signature] = func
-            self._cache.clear()
+            # handle variadic signatures
+            if isinstance(typ, list):
+                if index != len(signature):
+                    raise TypeError(
+                        'Variadic signature must be the last element'
+                    )
+
+                if len(typ) != 1:
+                    raise TypeError(
+                        'Variadic signature must contain exactly one element. '
+                        'To use a variadic union type place the desired types '
+                        'inside of a tuple, e.g., [(int, str)]'
+                    )
+                new_signature.append(Variadic[typ[0]])
+            else:
+                new_signature.append(typ)
+
+        self.funcs[tuple(new_signature)] = func
+        self._cache.clear()
 
         try:
             del self._ordering
@@ -273,7 +338,7 @@ class Dispatcher(object):
         None
 
         See Also:
-            ``multipledispatch.conflict`` - module to determine resolution order
+          ``multipledispatch.conflict`` - module to determine resolution order
         """
 
         if types in self.funcs:
@@ -293,17 +358,16 @@ class Dispatcher(object):
                 yield e
 
     def dispatch_iter(self, *types):
+
         n = len(types)
         for signature in self.ordering:
             if len(signature) == n:
                 result = self.funcs[signature]
-                try:
-                    typsig = typing.Tuple[signature]
-                    typvars = list(self.get_type_vars(typsig))
-                    if pytypes.is_subtype(typing.Tuple[types], typsig, bound_typevars={t.__name__: t for t in typvars}):
-                        yield result
-                except pytypes.InputTypeError:
-                    continue
+                yield result
+            elif len(signature) and isvariadic(signature[-1]):
+                if variadic_signature_matches(types, signature):
+                    result = self.funcs[signature]
+                    yield result
 
     def resolve(self, types):
         """ Deterimine appropriate implementation for this type signature

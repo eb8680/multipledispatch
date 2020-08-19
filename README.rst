@@ -1,7 +1,7 @@
 Multiple Dispatch
 =================
 
-|Build Status| |Coverage Status| |Version Status| |Downloads|
+|Build Status| |Coverage Status| |Version Status|
 
 A relatively sane approach to multiple dispatch in Python.
 
@@ -54,16 +54,10 @@ What this does
 
 -  Supports namespaces with optional keyword arguments
 
+-  Supports variadic dispatch
+
 What this doesn't do
 --------------------
-
--  Vararg dispatch
-
-.. code-block:: python
-
-   @dispatch([int])
-   def add(*args):
-       ...
 
 -  Diagonal dispatch
 
@@ -76,8 +70,7 @@ What this doesn't do
 
 -  Efficient update: The addition of a new signature requires a full resolve of
    the whole function.  This becomes troublesome after you get to a few hundred
-   type signatures.  It can be mitigated by halting and restarting ordering see
-   (``halt_ordering`` and ``restart_ordering`` functions for more information.)
+   type signatures.
 
 
 Installation and Dependencies
@@ -97,8 +90,8 @@ or
 
 
 ``multipledispatch`` supports Python 2.6+ and Python 3.2+ with a common
-codebase.  It is pure Python and requires no dependencies beyond the standard
-library.
+codebase.  It is pure Python and requires only the small `six
+<https://pypi.org/project/six/>`_ library as a dependency.
 
 It is, in short, a light weight dependency.
 
@@ -142,9 +135,7 @@ Links
 .. |Build Status| image:: https://travis-ci.org/mrocklin/multipledispatch.png
    :target: https://travis-ci.org/mrocklin/multipledispatch
 .. |Version Status| image:: https://pypip.in/v/multipledispatch/badge.png
-   :target: https://pypi.python.org/pypi/multipledispatch/
-.. |Downloads| image:: https://pypip.in/d/multipledispatch/badge.png
-   :target: https://pypi.python.org/pypi/multipledispatch/
+   :target: https://img.shields.io/pypi/v/multipledispatch.svg
 .. |Coverage Status| image:: https://coveralls.io/repos/mrocklin/multipledispatch/badge.png
    :target: https://coveralls.io/r/mrocklin/multipledispatch
 .. _License file: https://github.com/mrocklin/multipledispatch/blob/master/LICENSE.txt
