@@ -77,7 +77,7 @@ def variadic_signature_matches_iter(types, full_signature):
     sigiter = iter(full_signature)
     sig = next(sigiter)
     for typ in types:
-        matches = safe_subtype(typ, sig)
+        matches = pytypes.is_subtype(typ, sig)
         yield matches
         if not isvariadic(sig):
             # we're not matching a variadic argument, so move to the next
@@ -225,15 +225,16 @@ class Dispatcher(object):
             else:
                 return tp
 
-        signatures = expand_tuples(signature)
-        for signature in signatures:
-            signature = tuple(process_union(tp) for tp in signature)
+        # signatures = expand_tuples(signature)
+        # for signature in signatures:
+        signature = tuple(process_union(tp) for tp in signature)
 
         new_signature = []
 
         for index, typ in enumerate(signature, start=1):
             try:
-                typing.Union[typ]
+                if not isinstance(typ, list):
+                    typing.Union[typ]
             except TypeError:
                 str_sig = ', '.join(c.__name__ if isinstance(c, type)
                                     else str(c) for c in signature)
@@ -361,7 +362,7 @@ class Dispatcher(object):
 
         n = len(types)
         for signature in self.ordering:
-            if len(signature) == n:
+            if len(signature) == n and all(map(pytypes.is_subtype, types, signature)):
                 result = self.funcs[signature]
                 yield result
             elif len(signature) and isvariadic(signature[-1]):
@@ -471,7 +472,7 @@ def str_signature(sig):
     >>> str_signature((int, float))
     'int, float'
     """
-    return ', '.join(cls.__name__ for cls in sig)
+    return ', '.join(getattr(cls, "__name__", str(cls))  for cls in sig)
 
 
 def warning_text(name, amb):

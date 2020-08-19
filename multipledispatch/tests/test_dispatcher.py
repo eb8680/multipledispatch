@@ -1,4 +1,4 @@
-
+import typing
 import warnings
 
 from multipledispatch.dispatcher import (Dispatcher, MDNotImplementedError,

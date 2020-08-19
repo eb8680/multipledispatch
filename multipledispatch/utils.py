@@ -146,6 +146,8 @@ def typename(type):
     try:
         return type.__name__
     except AttributeError:
-        if len(type) == 1:
-            return typename(*type)
-        return '(%s)' % ', '.join(map(typename, type))
+        if isinstance(type, (list, tuple)):
+            if len(type) == 1:
+                return typename(*type)
+            return '(%s)' % ', '.join(map(typename, type))
+        return str(type)
