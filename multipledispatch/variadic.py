@@ -1,16 +1,26 @@
 import six
+import typing
+import typing_extensions
+
+import pytypes
 
 from .utils import typename
+
+
+def safe_subtype(a, b):
+    """Union safe subclass"""
+    if pytypes.is_Union(a):
+        return any(pytypes.is_subtype(tp, b) for tp in pytypes.get_Union_params(a))
+    else:
+        return pytypes.is_subtype(a, b)
 
 
 class VariadicSignatureType(type):
     # checking if subclass is a subclass of self
     def __subclasscheck__(self, subclass):
         other_type = (subclass.variadic_type if isvariadic(subclass)
-                      else (subclass,))
-        return subclass is self or all(
-            issubclass(other, self.variadic_type) for other in other_type
-        )
+                      else subclass)
+        return pytypes.is_subtype(typing.Tuple[other_type, ...], typing.Tuple[self.variadic_type, ...])
 
     def __eq__(self, other):
         """
@@ -27,10 +37,10 @@ class VariadicSignatureType(type):
             Whether or not `other` is equal to `self`
         """
         return (isvariadic(other) and
-                set(self.variadic_type) == set(other.variadic_type))
+                self.variadic_type == other.variadic_type)
 
     def __hash__(self):
-        return hash((type(self), frozenset(self.variadic_type)))
+        return hash((type(self), self.variadic_type))
 
 
 def isvariadic(obj):
@@ -71,7 +81,7 @@ class VariadicSignatureMeta(type):
         return VariadicSignatureType(
             'Variadic[%s]' % typename(variadic_type),
             (),
-            dict(variadic_type=variadic_type, __slots__=())
+            dict(variadic_type=typing.Union[variadic_type], __slots__=())
         )
 
 

@@ -1,18 +1,11 @@
+import pytypes
+import typing
 from .utils import _toposort, groupby
-from pytypes import is_subtype, is_Union, get_Union_params
-from .variadic import isvariadic
+from .variadic import isvariadic, safe_subtype
 
 
 class AmbiguityWarning(Warning):
     pass
-
-
-def safe_subtype(a, b):
-    """Union safe subclass"""
-    if is_Union(a):
-        return any(is_subtype(tp, b) for tp in get_Union_params(a))
-    else:
-        return is_subtype(a, b)
 
 
 def supercedes(a, b):

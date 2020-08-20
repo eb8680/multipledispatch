@@ -301,11 +301,11 @@ def test_vararg_dispatch_ambiguity():
 def test_vararg_dispatch_ambiguity_in_variadic():
     f = Dispatcher('f')
 
-    @f.register(float, [object])
+    @f.register(float, [typing.Any])
     def _1(a, b, *args):
         return 1
 
-    @f.register(object, [float])
+    @f.register(typing.Any, [float])
     def _2(a, b, *args):
         return 2
 
@@ -358,7 +358,7 @@ def test_vararg_dispatch_unions():
     def _3(*strings_ints):
         return 'mixed_strings_ints'
 
-    @f.register([object])
+    @f.register([typing.Any])
     def _4(*objects):
         return 'objects'
 
@@ -401,15 +401,15 @@ def test_vararg_no_args_failure_2():
 def test_vararg_ordering():
     f = Dispatcher('f')
 
-    @f.register(str, int, [object])
+    @f.register(str, int, [typing.Any])
     def _1(string, integer, *objects):
         return 1
 
-    @f.register(str, [object])
+    @f.register(str, [typing.Any])
     def _2(string, *objects):
         return 2
 
-    @f.register([object])
+    @f.register([typing.Any])
     def _3(*objects):
         return 3
 

@@ -5,7 +5,7 @@ import copy
 
 from .conflict import ordering, ambiguities, super_signature, AmbiguityWarning
 from .utils import expand_tuples
-from .variadic import Variadic, isvariadic
+from .variadic import Variadic, isvariadic, safe_subtype
 import itertools as itl
 
 import itertools as itl
@@ -77,7 +77,7 @@ def variadic_signature_matches_iter(types, full_signature):
     sigiter = iter(full_signature)
     sig = next(sigiter)
     for typ in types:
-        matches = pytypes.is_subtype(typ, sig)
+        matches = pytypes.is_subtype(typ, sig.variadic_type if isvariadic(sig) else sig)
         yield matches
         if not isvariadic(sig):
             # we're not matching a variadic argument, so move to the next
@@ -283,11 +283,13 @@ class Dispatcher(object):
         return od
 
     def __call__(self, *args, **kwargs):
-        try:
-            types = tuple([pytypes.deep_type(arg, 1, max_sample=10) for arg in args])
-        except:
-            # some things dont deeptype welkl
-            types = tuple([type(arg) for arg in args])
+        types = tuple([type(arg) for arg in args])
+        # XXX way, way too expensive to use deep_type like this
+        # try:
+        #     types = tuple([pytypes.deep_type(arg, 1, max_sample=10) for arg in args])
+        # except:
+        #     # some things dont deeptype welkl
+        #     types = tuple([type(arg) for arg in args])
         try:
             func = self._cache[types]
         except KeyError:

@@ -1,6 +1,7 @@
 # import sys
 
 # from nose import SkipTest
+import pytest
 
 from multipledispatch import dispatch
 from multipledispatch.dispatcher import Dispatcher
@@ -32,6 +33,13 @@ def test_function_annotation_dispatch():
     def inc(x: float):
         return x - 1
 
+    assert inc(1) == 2
+    assert inc(1.0) == 0.0
+
+
+@pytest.mark.xfail(reason="avoiding deep_type for performance reasons")
+def test_function_annotation_dispatch_generics():
+
     @dispatch()
     def inc(x: typing.Optional[str]):
         return x
@@ -44,8 +52,6 @@ def test_function_annotation_dispatch():
     def inc(x: typing.List[str]):
         return x[0] + 'b'
 
-    assert inc(1) == 2
-    assert inc(1.0) == 0.0
     assert inc('a') == 'a'
     assert inc([8]) == 32
     assert inc(['a']) == 'ab'
